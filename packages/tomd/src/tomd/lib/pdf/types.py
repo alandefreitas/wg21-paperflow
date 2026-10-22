@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from enum import Enum, StrEnum
+from enum import Enum
 from typing import TYPE_CHECKING
 
+from tomd.domain.document import SkipReason as SkipReason
 from tomd.lib import DOC_NUM_PATTERN, SECTION_NUM_PATTERN
 
 if TYPE_CHECKING:
@@ -20,15 +21,6 @@ class Confidence(Enum):
     MEDIUM = "medium"
     LOW = "low"
     UNCERTAIN = "uncertain"
-
-
-class SkipReason(StrEnum):
-    """Closed set of early-exit reasons for :class:`PipelineResult`."""
-
-    EMPTY_PDF = "empty pdf"
-    SLIDE_DECK = "slide deck"
-    STANDARDS_DRAFT = "standards draft"
-    UNREADABLE = "unreadable"
 
 
 @dataclass

@@ -9,7 +9,13 @@ Official repository: https://github.com/cppalliance/wg21-paperflow
 from dataclasses import FrozenInstanceError
 import pytest
 
-from tomd.domain.document import ConvertedPaper, PaperDocument, SkipReason
+from tomd.api import ConvertedPaper
+from tomd.domain.diagnostics import (
+    Diagnostics,
+    GlyphPassStats,
+    VectorUncertaintyStats,
+)
+from tomd.domain.document import PaperDocument, SkipReason
 from tomd.domain.elements import (
     BlockElement,
     Blockquote,
@@ -24,8 +30,15 @@ from tomd.domain.elements import (
     UncertainElement,
     WordingBlock,
 )
-from tomd.domain.image import ExtractedImage
+from tomd.domain.image import ExtractedImage, ImageSource
 from tomd.domain.metadata import FRONT_MATTER_ORDER, PaperMetadata
+from tomd.lib.pdf.glyphs import GlyphPassStats as PdfGlyphPassStats
+from tomd.lib.pdf.images import (
+    ExtractedImage as PdfExtractedImage,
+    ImageSource as PdfImageSource,
+    VectorUncertaintyStats as PdfVectorUncertaintyStats,
+)
+from tomd.lib.pdf.types import SkipReason as PdfSkipReason
 from tomd.domain.span import (
     CodeSpan,
     ContainerSpan,
@@ -91,10 +104,10 @@ def test_enums_and_base_types():
     assert ElementKind.IMAGE == "image"
     assert ElementKind.UNCERTAIN == "uncertain"
 
-    # SkipReason enumeration
-    assert SkipReason.EMPTY_CONTENT == "empty_content"
-    assert SkipReason.SLIDE_DECK == "slide_deck"
-    assert SkipReason.STANDARDS_DRAFT == "standards_draft"
+    # SkipReason enumeration (canonical legacy values)
+    assert SkipReason.EMPTY_PDF == "empty pdf"
+    assert SkipReason.SLIDE_DECK == "slide deck"
+    assert SkipReason.STANDARDS_DRAFT == "standards draft"
     assert SkipReason.UNREADABLE == "unreadable"
 
 
@@ -209,16 +222,21 @@ def test_table_and_cells():
 
 def test_image_models():
     extracted = ExtractedImage(
-        stored_filename="figure1.png",
+        page=1,
+        index_on_page=2,
+        ext="png",
         bytes=b"\x89PNG\r\n\x1a\n",
-        caption="Figure 1: State machine",
-        alt="State machine diagram",
-        source="raster",
+        bbox=(10.0, 20.0, 110.0, 120.0),
+        suggested_alt="Figure 1: State machine",
+        stored_filename="p1234r0-fig1-2.png",
+        xref=42,
     )
-    assert extracted.stored_filename == "figure1.png"
-    assert extracted.bytes == b"\x89PNG\r\n\x1a\n"
-    assert extracted.caption == "Figure 1: State machine"
     assert extracted.source == "raster"
+    assert extracted.sub_captions == ()
+    assert extracted.caption_body_dropped is False
+
+    with pytest.raises(FrozenInstanceError):
+        extracted.page = 2  # type: ignore[misc]
 
 
 def test_block_elements_hierarchy():
@@ -304,25 +322,60 @@ def test_document_and_conversion_containers():
         paper_id="P9999R0",
         metadata=meta,
         elements=[h2, p],
-        body="",
-        is_skipped=False,
-        skip_reason=None,
     )
     assert doc.paper_id == "P9999R0"
     assert len(doc.elements) == 2
     assert not doc.is_skipped
     assert doc.skip_reason is None
+    assert doc.diagnostics == Diagnostics()
 
     skipped_doc = PaperDocument(
         paper_id="P0000R0",
         metadata=meta,
         is_skipped=True,
-        skip_reason=SkipReason.EMPTY_CONTENT,
+        skip_reason=SkipReason.EMPTY_PDF,
     )
     assert skipped_doc.is_skipped is True
-    assert skipped_doc.skip_reason == SkipReason.EMPTY_CONTENT
+    assert skipped_doc.skip_reason == SkipReason.EMPTY_PDF
 
-    converted = ConvertedPaper.from_document(doc, markdown="---\ntitle: Sample Paper\n---\n\n## Proposed Wording\n\nText here.\n")
-    assert converted.paper_id == "P9999R0"
-    assert converted.metadata.title == "Sample Paper"
+    converted = ConvertedPaper(
+        markdown="---\ntitle: Sample Paper\n---\n\n## Proposed Wording\n\nText here.\n",
+        prompts=None,
+        intent="info",
+    )
     assert "Proposed Wording" in converted.markdown
+
+
+@pytest.mark.parametrize(
+    ("stats", "present", "expected_fired", "expected_marker"),
+    [
+        (GlyphPassStats(), 0, False, False),
+        (GlyphPassStats(injected=1), 0, True, False),
+        (GlyphPassStats(free_standing=1), 0, True, False),
+        (GlyphPassStats(injected=1), 1, True, True),
+        (GlyphPassStats(skipped_coincident=1), 0, True, True),
+        (GlyphPassStats(skipped_code_section=1), 0, True, True),
+    ],
+)
+def test_glyph_pass_stats_predicates(
+    stats: GlyphPassStats,
+    present: int,
+    expected_fired: bool,
+    expected_marker: bool,
+):
+    assert stats.fired is expected_fired
+    assert stats.should_emit_marker(present) is expected_marker
+
+
+def test_diagnostics_models_and_reexports():
+    assert SkipReason is PdfSkipReason
+    assert ExtractedImage is PdfExtractedImage
+    assert ImageSource is PdfImageSource
+    assert VectorUncertaintyStats is PdfVectorUncertaintyStats
+    assert GlyphPassStats is PdfGlyphPassStats
+
+    default_diag = Diagnostics()
+    assert default_diag.dropped_image_count(0) == 0
+    assert Diagnostics(images_truncated=False, source_image_count=25).dropped_image_count(20) == 0
+    assert Diagnostics(images_truncated=True, source_image_count=20).dropped_image_count(20) == 0
+    assert Diagnostics(images_truncated=True, source_image_count=25).dropped_image_count(20) == 5
