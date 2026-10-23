@@ -43,7 +43,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from tomd.domain.diagnostics import GlyphPassStats as GlyphPassStats
+from tomd.domain.diagnostics import GlyphPassStats
 
 from .emoji_data import EMOJI_PRESENTATION_RANGES
 from .images import MIN_IMAGE_DIM_PT

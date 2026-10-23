@@ -30,15 +30,9 @@ from tomd.domain.elements import (
     UncertainElement,
     WordingBlock,
 )
-from tomd.domain.image import ExtractedImage, ImageSource
-from tomd.domain.metadata import FRONT_MATTER_ORDER, PaperMetadata
-from tomd.lib.pdf.glyphs import GlyphPassStats as PdfGlyphPassStats
-from tomd.lib.pdf.images import (
-    ExtractedImage as PdfExtractedImage,
-    ImageSource as PdfImageSource,
-    VectorUncertaintyStats as PdfVectorUncertaintyStats,
-)
-from tomd.lib.pdf.types import SkipReason as PdfSkipReason
+from tomd.domain.image import ExtractedImage
+from tomd.domain.metadata import PaperMetadata
+from tomd.lib.metadata_yaml.format import FRONT_MATTER_ORDER
 from tomd.domain.span import (
     CodeSpan,
     ContainerSpan,
@@ -367,12 +361,18 @@ def test_glyph_pass_stats_predicates(
     assert stats.should_emit_marker(present) is expected_marker
 
 
-def test_diagnostics_models_and_reexports():
-    assert SkipReason is PdfSkipReason
-    assert ExtractedImage is PdfExtractedImage
-    assert ImageSource is PdfImageSource
-    assert VectorUncertaintyStats is PdfVectorUncertaintyStats
-    assert GlyphPassStats is PdfGlyphPassStats
+def test_diagnostics_models():
+    vec_stats = VectorUncertaintyStats(
+        pages_scanned=2,
+        candidates=3,
+        kept=1,
+        rejected=2,
+        reasons={"too_small": 2},
+        pages_skipped=0,
+    )
+    assert vec_stats.rejected == 2
+    with pytest.raises(FrozenInstanceError):
+        vec_stats.kept = 0  # type: ignore[misc]
 
     default_diag = Diagnostics()
     assert default_diag.dropped_image_count(0) == 0

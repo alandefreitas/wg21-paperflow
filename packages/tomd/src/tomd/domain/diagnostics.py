@@ -44,20 +44,20 @@ class GlyphPassStats:
     @property
     def fired(self) -> bool:
         """True if the pass produced anything worth logging."""
-        return bool(
+        return (
             self.injected
-            or self.skipped_coincident
-            or self.free_standing
-            or self.skipped_code_section
-        )
+            + self.skipped_coincident
+            + self.free_standing
+            + self.skipped_code_section
+        ) > 0
 
     def should_emit_marker(self, present: int) -> bool:
         """True when surviving body placeholders or skipped counts warrant a trailer marker."""
-        return bool(
+        return (
             present
-            or self.skipped_coincident
-            or self.skipped_code_section
-        )
+            + self.skipped_coincident
+            + self.skipped_code_section
+        ) > 0
 
 
 @dataclass(frozen=True)
@@ -75,10 +75,3 @@ class Diagnostics:
         if not self.images_truncated or self.source_image_count <= 0:
             return 0
         return max(self.source_image_count - kept_image_count, 0)
-
-
-__all__ = [
-    "Diagnostics",
-    "GlyphPassStats",
-    "VectorUncertaintyStats",
-]

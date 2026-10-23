@@ -166,3 +166,12 @@ Fix: replace the 9 repetitive functions with `_assert_twin_output` and a paramet
 | R4 | Done. Restored concise domain-constraint docstrings in `domain/image.py` and `domain/diagnostics.py`. |
 | R5 | Done. Consolidated `test_markers.py` with `@pytest.mark.parametrize` and added the 4 missing boundary cases. |
 | R6 | Done. Cleaned up `test_domain_models.py` imports, `PaperDocument` call, and predicate/default coverage. |
+
+## PR #485 review follow-ups (jasonbrazeal)
+
+| Comment | Outcome |
+|---------|---------|
+| `diagnostics.py`: check sum > 0 instead of `bool(a or b ...)` on int counters in `GlyphPassStats.fired` and `should_emit_marker` | Done. Replaced `bool(... or ...)` with `(...) > 0`. |
+| `lib/pdf/{glyphs,images,types}.py`: remove `from tomd.domain... import X as X` re-exports | Done. Removed `as X` re-exports (including `domain/metadata.py`) and updated callers/tests to import domain types directly from `tomd.domain.*`. |
+| `test_domain_models.py`: remove `test_diagnostics_models_and_reexports` identity assertions | Done. Removed `Pdf*` alias imports and `is` assertions; renamed test to `test_diagnostics_models`. |
+| Avoid library conventions (`__all__` in regular modules) in application code | Done. Removed `__all__` from non-`__init__.py` modules in `domain/` and `writers/markdown/`, and added anti-library-idiom rules to `CLAUDE.md` and global `AGENTS.md`. |

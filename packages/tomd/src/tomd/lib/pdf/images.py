@@ -42,13 +42,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from tomd.domain.diagnostics import (
-    VectorUncertaintyStats as VectorUncertaintyStats,
-)
-from tomd.domain.image import (
-    ExtractedImage as ExtractedImage,
-    ImageSource as ImageSource,
-)
+from tomd.domain.diagnostics import VectorUncertaintyStats
+from tomd.domain.image import ExtractedImage, ImageSource
 
 if TYPE_CHECKING:
     import pymupdf

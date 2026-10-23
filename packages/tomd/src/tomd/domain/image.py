@@ -37,6 +37,3 @@ class ExtractedImage:
     source: ImageSource = "raster"
     sub_captions: tuple[tuple[str, str], ...] = ()
     caption_body_dropped: bool = False
-
-
-__all__ = ["ExtractedImage", "ImageSource"]

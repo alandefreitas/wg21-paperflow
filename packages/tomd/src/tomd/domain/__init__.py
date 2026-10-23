@@ -28,7 +28,8 @@ from tomd.domain.elements import (
     WordingRole,
 )
 from tomd.domain.image import ExtractedImage, ImageSource
-from tomd.domain.metadata import FRONT_MATTER_ORDER, PaperMetadata
+from tomd.domain.metadata import PaperMetadata
+from tomd.lib.metadata_yaml.format import FRONT_MATTER_ORDER
 from tomd.domain.span import (
     CodeSpan,
     ContainerSpan,

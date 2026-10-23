@@ -83,6 +83,3 @@ def append_trailer_markers(
     base = body_md.rstrip()
     parts = [base, *markers] if base else markers
     return "\n\n".join(parts) + "\n"
-
-
-__all__ = ["append_trailer_markers"]
